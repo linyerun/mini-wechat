@@ -1,0 +1,22 @@
+.DS_Store
+*.log
+.env
+.env.local
+
+# Go
+server/mini-wechat
+server/data/*.db
+server/data/*.db-shm
+server/data/*.db-wal
+server/uploads/*
+!server/uploads/seed/
+!server/uploads/seed/**
+
+# Web
+web/node_modules/
+web/dist/
+
+
+mini-wechat
+data
+.idea

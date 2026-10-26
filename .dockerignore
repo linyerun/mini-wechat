@@ -1,0 +1,14 @@
+.git
+.gitignore
+.DS_Store
+*.log
+README.md
+
+web/node_modules
+web/dist
+
+server/data
+server/mini-wechat
+server/uploads/*
+!server/uploads/seed/
+!server/uploads/seed/**

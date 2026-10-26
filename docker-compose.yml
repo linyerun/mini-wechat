@@ -1,0 +1,66 @@
+name: mini-wechat
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        NPM_REGISTRY: "${NPM_REGISTRY:-https://registry.npmjs.org}"
+        GOPROXY: "${GOPROXY:-https://proxy.golang.org,direct}"
+        GOSUMDB: "${GOSUMDB:-sum.golang.org}"
+    image: mini-wechat:local
+    container_name: mini-wechat
+    ports:
+      - "${APP_PORT:-8090}:8090"
+    environment:
+      PORT: "8090"
+      DB_PATH: /data/wechat.db
+      UPLOADS_DIR: /data/uploads
+      WEB_DIST: /app/web/dist
+      JWT_SECRET: "${JWT_SECRET:-mini-wechat-dev-secret-change-me}"
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://jaeger:4318"
+      OTEL_SERVICE_NAME: mini-wechat-server
+      OTEL_TRACES_SAMPLER_ARG: "${OTEL_TRACES_SAMPLER_ARG:-1.0}"
+    volumes:
+      - app-data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8090/api/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+
+  prometheus:
+    image: "${PROMETHEUS_IMAGE:-prom/prometheus:v2.55.1}"
+    container_name: mini-wechat-prometheus
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=7d
+    ports:
+      - "${PROMETHEUS_PORT:-9090}:9090"
+    volumes:
+      - ./deploy/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    depends_on:
+      app:
+        condition: service_healthy
+    restart: unless-stopped
+
+  jaeger:
+    image: "${JAEGER_IMAGE:-jaegertracing/all-in-one:1.62.0}"
+    container_name: mini-wechat-jaeger
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+    ports:
+      - "${JAEGER_UI_PORT:-16686}:16686"
+      - "${JAEGER_OTLP_HTTP_PORT:-4318}:4318"
+    restart: unless-stopped
+
+volumes:
+  app-data:
+    name: mini-wechat-data
+  prometheus-data:
+    name: mini-wechat-prometheus-data
